@@ -586,16 +586,18 @@ class GithubTrendingBridge extends BridgeAbstract
                     'Monthly' => 'monthly',
                 ],
                 'defaultValue' => 'today'
+            ],
+            'spokenLanguage' => [
+                'name' => 'Spoken Language Code',
+                'type' => 'text',
+                'exampleValue' => 'en',
             ]
         ]
-
     ];
 
     public function collectData()
     {
-        $params = ['since' => urlencode($this->getInput('date_range'))];
-        $url = self::URI . '/' . $this->getInput('language') . '?' . http_build_query($params);
-
+        $url = $this->constructUrl();
         $html = getSimpleHTMLDOM($url);
 
         $this->items = [];
@@ -603,10 +605,10 @@ class GithubTrendingBridge extends BridgeAbstract
             $item = [];
 
             // URI
-            $item['uri'] = self::URI_ITEM . $element->find('h1 a', 0)->href;
+            $item['uri'] = self::URI_ITEM . $element->find('h2 a', 0)->href;
 
             // Title
-            $item['title'] = str_replace('  ', '', trim(strip_tags($element->find('h1 a', 0)->plaintext)));
+            $item['title'] = str_replace('  ', '', trim(strip_tags($element->find('h2 a', 0)->plaintext)));
 
             // Description
             $description = $element->find('p', 0);
@@ -629,5 +631,33 @@ class GithubTrendingBridge extends BridgeAbstract
         }
 
         return parent::getName();
+    }
+
+    private function constructUrl()
+    {
+        $url = self::URI;
+        $language = $this->getInput('language');
+        $dateRange = $this->getInput('date_range');
+        $spokenLanguage = $this->getInput('spokenLanguage');
+
+        if (!empty($language)) {
+            $url .= '/' . $language;
+        }
+
+        $queryParams = [];
+
+        if (!empty($dateRange)) {
+            $queryParams['since'] = $dateRange;
+        }
+
+        if (!empty($spokenLanguage)) {
+            $queryParams['spoken_language_code'] = trim($spokenLanguage);
+        }
+
+        if (!empty($queryParams)) {
+            $url .= '?' . http_build_query($queryParams);
+        }
+
+        return $url;
     }
 }
